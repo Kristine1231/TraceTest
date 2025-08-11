@@ -15,11 +15,12 @@ app.get('/', async (req, res) => {
   }
 
   // Find dynamic SOP key and value (exclude the target/url param)
-  const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
-  let sop = 'Unknown';
-  if (sopParamEntry) {
-    [sop] = sopParamEntry;
-  }
+const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
+let sop = 'Unknown';
+if (sopParamEntry) {
+  const [key, value] = sopParamEntry;
+  sop = value;  // Use the value, not the key
+}
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -57,5 +58,6 @@ app.get('/', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 

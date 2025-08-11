@@ -29,9 +29,9 @@ if (sopParamEntry) {
     rows: [
       {
         cells: [
-          { column: 'COL_SOP', value: sop },
-          { column: 'COL_DATE', value: today },
-          { column: 'COL_URL', value: targetUrl },
+          { column: 'c-7GUpG84D4a', value: sop },
+          { column: 'c-pIIz5IhJJZ', value: today },
+          { column: 'c-pzBgI-pKEK', value: targetUrl },
         ],
       },
     ],
@@ -58,6 +58,7 @@ if (sopParamEntry) {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
 

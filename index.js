@@ -1,7 +1,5 @@
-
 import fetch from 'node-fetch';
 import express from 'express';
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,10 +9,17 @@ const CODA_DOC_ID = process.env.CODA_DOC_ID;
 const CODA_TABLE_ID = process.env.CODA_TABLE_ID; // You can get this from Coda API
 
 app.get('/', async (req, res) => {
-  const sop = req.query.sop || 'Unknown';
-  const targetUrl = req.query.url;
+  const targetUrl = req.query.target || req.query.url;
   if (!targetUrl) {
     return res.status(400).send('Missing target URL');
+  }
+
+  // Find dynamic SOP key and value (exclude the target/url param)
+  const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
+  let sopKey = 'Unknown';
+  let sopValue = 'Unknown';
+  if (sopParamEntry) {
+    [sopKey, sopValue] = sopParamEntry;
   }
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

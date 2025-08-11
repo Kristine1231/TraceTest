@@ -18,7 +18,7 @@ app.get('/', async (req, res) => {
   const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
   let sop = 'Unknown';
   if (sopParamEntry) {
-    [sopKey, sopValue] = sopParamEntry;
+    [sop] = sopParamEntry;
   }
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -57,4 +57,5 @@ app.get('/', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 

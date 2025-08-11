@@ -16,8 +16,7 @@ app.get('/', async (req, res) => {
 
   // Find dynamic SOP key and value (exclude the target/url param)
   const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
-  let sopKey = 'Unknown';
-  let sopValue = 'Unknown';
+  let sop = 'Unknown';
   if (sopParamEntry) {
     [sopKey, sopValue] = sopParamEntry;
   }
@@ -58,3 +57,4 @@ app.get('/', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/Kristine1231/TraceTest#readme",
   "dependencies": {
+    "cookie-session": "^2.1.1",
     "express": "^5.1.0",
     "express-session": "^1.17.3",
     "googleapis": "^133.0.0",

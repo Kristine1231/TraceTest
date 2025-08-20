@@ -1,64 +1,92 @@
-import fetch from 'node-fetch';
-import express from 'express';
+import express from "express";
+import session from "express-session";
+import fetch from "node-fetch";
+import { google } from "googleapis";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CODA_API_KEY = process.env.CODA_API_KEY;  // Set these in Render env vars
-const CODA_DOC_ID = process.env.CODA_DOC_ID;
-const CODA_TABLE_ID = process.env.CODA_TABLE_ID; // You can get this from Coda API
+// --- Google OAuth setup ---
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI; // e.g. https://traceable-link.onrender.com/auth/callback
 
-app.get('/', async (req, res) => {
-  const targetUrl = req.query.target || req.query.url;
-  if (!targetUrl) {
-    return res.status(400).send('Missing target URL');
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URI
+);
+
+// --- Session setup ---
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "supersecret",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+// --- Step 1: Incoming tracking link ---
+app.get("/", (req, res) => {
+  const { sop, sopName, target } = req.query;
+
+  if (!req.session.user) {
+    // Save state for after login
+    req.session.pending = { sop, sopName, target };
+
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: ["openid", "email", "profile"],
+    });
+
+    return res.redirect(url);
   }
 
-  // Find dynamic SOP key and value (exclude the target/url param)
-const sopParamEntry = Object.entries(req.query).find(([key]) => key !== 'target' && key !== 'url');
-let sop = 'Unknown';
-if (sopParamEntry) {
-  const [key, value] = sopParamEntry;
-  sop = value;  // Use the value, not the key
-}
+  // If already logged in → go straight to redirect
+  res.redirect(`/go`);
+});
 
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+// --- Step 2: OAuth callback ---
+app.get("/auth/callback", async (req, res) => {
+  const { code } = req.query;
+  const { tokens } = await oauth2Client.getToken(code);
+  oauth2Client.setCredentials(tokens);
 
-  // Log click to Coda
-  const payload = {
-    rows: [
-      {
-        cells: [
-          { column: 'c-7GUpG84D4a', value: sop },
-          { column: 'c-pIIz5IhJJZ', value: today },
-          { column: 'c-pzBgI-pKEK', value: targetUrl },
-        ],
-      },
-    ],
+  // Fetch user info
+  const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+  const userinfo = await oauth2.userinfo.get();
+
+  req.session.user = {
+    email: userinfo.data.email,
+    name: userinfo.data.name,
   };
 
-  try {
-    await fetch(`https://coda.io/apis/v1/docs/${CODA_DOC_ID}/tables/${encodeURIComponent(CODA_TABLE_ID)}/rows`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${CODA_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    console.error('Error logging to Coda:', error);
-    // Don't block redirect if logging fails
-  }
+  return res.redirect("/go");
+});
 
-  // Redirect user to the actual target URL
-  return res.redirect(targetUrl);
+// --- Step 3: Logging + redirect to Coda ---
+app.get("/go", async (req, res) => {
+  if (!req.session.user) return res.redirect("/");
+
+  const { sop, sopName, target } = req.session.pending || {};
+  const { email, name } = req.session.user;
+
+  // ✅ Example logging (to console for now)
+  console.log("CLICK LOG:", {
+    sop,
+    sopName,
+    target,
+    email,
+    name,
+    date: new Date().toISOString(),
+  });
+
+  // TODO: send this log to Coda / Google Sheets / DB
+
+  // Redirect to Coda doc
+  res.redirect(decodeURIComponent(target));
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-
-
